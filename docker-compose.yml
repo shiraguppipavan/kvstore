@@ -1,0 +1,15 @@
+version: '2'
+services:
+  kvstore-service:
+    container_name: kvstore
+    image: kvstore:assignment
+    build: .
+    ports:
+      - "5000:5000"
+    networks:
+      - kvstore-network
+    command: python -u run.py
+
+networks:
+  kvstore-network:
+    driver: bridge
