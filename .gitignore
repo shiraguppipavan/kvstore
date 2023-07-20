@@ -1,0 +1,14 @@
+bin
+lib
+eggs
+dist
+*.db
+*.pt
+*.txt
+*.ppk
+downloads
+develop-eggs
+src/*.egg-info
+**/__pycache__/
+!requirements.txt
+**/installer_files/
