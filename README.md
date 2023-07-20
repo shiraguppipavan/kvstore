@@ -95,7 +95,7 @@ pytest
 
 The main branches are:
 
-- `main` - Main production branch
+- `master` - Main production branch
 - `develop` - Development branch for testing new features
 - Feature branches used for specific features/fixes
 
