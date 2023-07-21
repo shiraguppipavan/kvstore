@@ -63,7 +63,7 @@ kubectl apply -f k8s/
 - `GET /get/<key>` - Get value for given key
 - `POST /set` - Set key-value pair (JSON body)
 - `GET /search?prefix=<prefix>&suffix=<suffix>` - Search keys by prefix and/or suffix
-- `GET /delete` - Delete value for the given key (JSON body)
+- `POST /delete` - Delete value for the given key (JSON body)
 - `GET /health` - Healthcheck endpoint
 
 
