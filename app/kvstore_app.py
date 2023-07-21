@@ -1,9 +1,10 @@
 import os
 import time
 import redis
+import threading
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify
-from prometheus_client import Counter, Histogram, Gauge, generate_latest
+from flask import Flask, jsonify, request
+from prometheus_client import Counter, Summary, Gauge, generate_latest, start_http_server
 
 # Load the environment variables from the .env file
 load_dotenv()
@@ -14,16 +15,46 @@ app = Flask(__name__)
 redis_host = os.getenv("REDIS_HOST")
 redis_port = os.getenv("REDIS_PORT")
 
+# Prometheus environment variables
+prometheus_port = int(os.getenv("PROM_PORT"))
+
 # create a redis instance
 db = redis.Redis(host=redis_host, port=redis_port)
 
 # metrics for prometheus monitoring
 request_count = Counter('requests', 'Total Request Count')
-latency = Histogram('latency_seconds', 'Request latency')
-cache_hits = Gauge('cache_hits', 'Total Cache Hits')
+request_latency = Summary('request_latency_seconds',
+                          'Request latency in seconds')
+cache_hits = Counter('cache_hits', 'Total Cache Hits')
+status_codes = Counter('endpoint_status_codes',
+                       'HTTP status codes for endpoints', ['endpoint', 'status'])
+db_keys = Gauge('db_keys_total', 'Total number of keys in the Redis database')
+
+
+def start_prometheus_server():
+    threading.Thread(target=record_db_keys).start()
+    start_http_server(prometheus_port)
+
+# Background thread to sample DB keys
+
+
+def record_db_keys():
+    while True:
+        try:
+            db_keys.set(len(db.keys()))
+            time.sleep(10)
+        except Exception as err:
+            print(err)
+
+
+@app.after_request
+def after_request(response):
+    status_codes.labels(request.path, response.status_code).inc()
+    return response
 
 
 @app.route('/get/<key>', methods=['GET'])
+@request_latency.time()
 def get(key):
     """ Get the value of the provided key. Will return null Dict if key not present in the database.
 
@@ -38,11 +69,8 @@ def get(key):
         try:
             cache_hits.inc()
 
-            start_time = time.time()
-
             # decode required as redis database returns data in bytes
             value = db.get(key).decode('utf-8')
-            latency.observe(time.time() - start_time)
             if value:
                 return jsonify({'value': value})
         except Exception as err:
@@ -52,6 +80,7 @@ def get(key):
 
 
 @app.route('/set', methods=['POST'])
+@request_latency.time()
 def set():
     """ Sets the key-value pair in the database. If key already exists, then the value will be overwritten.
 
@@ -72,6 +101,7 @@ def set():
 
 
 @app.route('/search', methods=['GET'])
+@request_latency.time()
 def search():
     """ Search for all the keys that are present in the database with the provided prefix or suffix.
 
@@ -85,40 +115,32 @@ def search():
     try:
         if 'prefix' in args:
             cache_hits.inc()
-
             # encode required as redis database accepts bytes as datatype
             prefix = args['prefix'].encode('utf-8')
-            start_time = time.time()
-
             # decode required as redis database returns data in bytes
             keys = [key.decode('utf-8')
                     for key in db.keys() if key.startswith(prefix)]
-            latency.observe(time.time() - start_time)
-
 
         elif 'suffix' in args:
 
             cache_hits.inc()
-
             # encode required as redis database accepts bytes as datatype
             suffix = args['suffix'].encode('utf-8')
-            start_time = time.time()
-
             # decode required as redis database returns data in bytes
             keys = [key.decode('utf-8')
                     for key in db.keys() if key.endswith(suffix)]
-            latency.observe(time.time() - start_time)
 
         values = [val.decode('utf-8') for val in db.mget(keys)]
         result = dict(zip(keys, values))
 
         return jsonify(result)
-    
+
     except Exception as err:
         return jsonify({'error': err})
 
 
 @app.route('/delete', methods=['POST'])
+@request_latency.time()
 def delete():
     """ Deletes the key value pair from the database.
 
@@ -131,12 +153,9 @@ def delete():
     if key in db:
         try:
             cache_hits.inc()
-
-            start_time = time.time()
             db.delete(key)
-            latency.observe(time.time() - start_time)
             return jsonify({'message': 'key deleted'})
-        
+
         except Exception as err:
             return jsonify({'error': err})
 
@@ -151,7 +170,6 @@ def health():
         Dict: Returns metrics and status of the connection with the database.
     """
     start_time = time.time()
-
     try:
         # Check database connection through a simple ping
         db.ping()

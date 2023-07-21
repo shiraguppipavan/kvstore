@@ -18,6 +18,7 @@ spec:
         imagePullPolicy: Never
         ports:
         - containerPort: 5000
+        - containerPort: 8000
         readinessProbe:
           httpGet:
             path: /health
@@ -92,6 +93,19 @@ spec:
     port: 80
     targetPort: 5000
     nodePort: 30000
+
+---
+
+apiVersion: v1  
+kind: Service
+metadata:
+  name: kvstore-metrics
+spec:
+  selector:
+    app: kvstore
+  ports:
+  - port: 80
+    targetPort: 8000
 
 ---
 

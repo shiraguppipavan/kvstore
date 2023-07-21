@@ -45,7 +45,7 @@ data:
     - job_name: flask_app  
       static_configs:
       - targets:
-        - kvstore-service:80
+        - kvstore-metrics:80
         labels:
           env: dev
 

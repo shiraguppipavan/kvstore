@@ -8,7 +8,6 @@ This project implements a simple key-value store API service with in-memory stor
 - Search/filter keys by prefix or suffix
 - Containerized with Docker 
 - Kubernetes deployment configuration
-- CI/CD pipelines for testing and deployment
 
 ## Usage
 
@@ -16,7 +15,7 @@ This project implements a simple key-value store API service with in-memory stor
 
 #### Prerequisites
 
-- Python 3.7+ 
+- Python 3.9+ 
 - Pip
 - Redis
 
@@ -43,8 +42,8 @@ The API will be running at http://localhost:5000
 A Dockerfile is provided to build an image for the API app.
 
 ```
-docker build -t kvstore .
-docker run -p 5000:5000 kvstore
+docker build -t kvstore:assignment .
+docker run -p 5000:5000 kvstore:assignment
 ```
 
 Redis also needs to be running in a separate container or on the host.
@@ -53,7 +52,7 @@ Redis also needs to be running in a separate container or on the host.
 
 Kubernetes manifests are in the `k8s` directory for deploying to a Kubernetes cluster.
 
-Includes StatefulSet, Service and Ingress.
+Includes Deployment, StatefulSet, Service and ConfigMap.
 
 ```
 kubectl apply -f k8s/
@@ -90,6 +89,7 @@ pytest
 - `PORT` - Port for app to run on
 - `REDIS_HOST` - Redis host 
 - `REDIS_PORT` - Redis port
+- `PROM_PORT` - Prometheus port
 
 ## Deployment
 
@@ -104,5 +104,3 @@ The main branches are:
 The app uses the following tools for observability:
 
 - Prometheus - Metrics collection
-- Grafana - Visualize metrics
-- ELK - Log aggregation with Elasticsearch, Logstash and Kibana
