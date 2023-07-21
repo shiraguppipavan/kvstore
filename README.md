@@ -104,3 +104,5 @@ The main branches are:
 The app uses the following tools for observability:
 
 - Prometheus - Metrics collection
+
+The prometheus server will be running on port 8000
